@@ -1,7 +1,7 @@
 # Prerequisiti
 - Python
 - CMake
-
+- MatPlotLib (Una volta scaricato python fai: `pip install matplotlib`)
 > Se stai su linux ti serve anche scaricare `python3-dev`. Puoi usare apt `sudo apt install python3-dev`
 
 # Setup iniziale
