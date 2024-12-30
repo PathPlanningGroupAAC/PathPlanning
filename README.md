@@ -25,3 +25,17 @@ Da dentro la cartella build:
 ```
 cmake --build .
 ```
+
+# Esecuzione
+## Windows
+Da dentro la cartella build:
+```
+.\Debug\Bounds.exe
+```
+> **ATTENZIONE:** Se hai fatto `cmake --build . --config RELEASE` allora fai `.\Release\Bounds.exe`
+
+## Linux
+Da dentro la cartella build:
+```
+./Bounds
+```
