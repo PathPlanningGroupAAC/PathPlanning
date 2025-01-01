@@ -13,7 +13,8 @@ file(GLOB_RECURSE SOURCES
 
 foreach(FILE ${SOURCES})
     string(FIND ${FILE} "${CMAKE_BINARY_DIR}" IS_IN_BUILD)
-    if(IS_IN_BUILD GREATER -1)
+    string(FIND ${FILE} "${CMAKE_SOURCE_DIR}/vendor" IS_IN_VENDOR)
+    if(IS_IN_BUILD GREATER -1 OR IS_IN_VENDOR GREATER -1)
         list(REMOVE_ITEM SOURCES ${FILE})
     endif()
 endforeach()
