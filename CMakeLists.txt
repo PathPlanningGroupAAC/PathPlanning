@@ -6,7 +6,12 @@ set(Python3_USE_DEBUG_LIBRARIES FALSE)
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 
 # Aggiungi il file principale per la compilazione
-add_executable(Bounds main.cpp)
+file(GLOB_RECURSE SOURCES
+    "${CMAKE_SOURCE_DIR}/*.cpp"
+    "${CMAKE_SOURCE_DIR}/*.h"
+)
+
+add_executable(Bounds ${SOURCES})
 
 # Aggiungi le librerie esterne
 include_directories(vendor/glm)
