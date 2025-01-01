@@ -11,6 +11,13 @@ file(GLOB_RECURSE SOURCES
     "${CMAKE_SOURCE_DIR}/*.h"
 )
 
+foreach(FILE ${SOURCES})
+    string(FIND ${FILE} "${CMAKE_BINARY_DIR}" IS_IN_BUILD)
+    if(IS_IN_BUILD GREATER -1)
+        list(REMOVE_ITEM SOURCES ${FILE})
+    endif()
+endforeach()
+
 add_executable(Bounds ${SOURCES})
 
 # Aggiungi le librerie esterne
