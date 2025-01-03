@@ -61,7 +61,7 @@ void debug_plot(const std::vector<glm::vec2>& cones_blue, const std::vector<glm:
 // giallo out
 void loadTrack(std::vector<glm::vec2>& points, const std::string& path)
 {
-    std::string absolute = std::filesystem::current_path().string() + "\\" + path;
+    std::string absolute = std::filesystem::current_path().string() + std::filesystem::path::preferred_separator + path;
     try {
         io::CSVReader<2> in(absolute);
 
