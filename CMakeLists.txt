@@ -60,7 +60,7 @@ target_link_directories(Bounds PRIVATE
 if(EXISTS "${CMAKE_SOURCE_DIR}/m_in.csv")
     add_custom_command(TARGET Bounds POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
-                ${CMAKE_BINARY_DIR}/m_in.csv
+                ${CMAKE_SOURCE_DIR}/m_in.csv
                 $<TARGET_FILE_DIR:Bounds>/m_in.csv
     )
 else()
@@ -70,7 +70,7 @@ endif()
 if(EXISTS "${CMAKE_SOURCE_DIR}/m_out.csv")
     add_custom_command(TARGET Bounds POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
-                ${CMAKE_BINARY_DIR}/m_out.csv
+                ${CMAKE_SOURCE_DIR}/m_out.csv
                 $<TARGET_FILE_DIR:Bounds>/m_out.csv
     )
 else()
