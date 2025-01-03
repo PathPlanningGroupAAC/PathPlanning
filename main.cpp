@@ -1,59 +1,24 @@
 #include <iostream>
-#include <iomanip>
 
-#define GLM_FORCE_RADIANS
-#include <glm/glm.hpp>
+#include "DetectBoundsAlgorithm.h"
+#include "DebugUtil.h"
 
-#include <matplotlibcpp.h>
-namespace plt = matplotlibcpp;
-
-#include <vector>
-
-#define PI 3.14159265359
-
-
-float calculateAngle(const glm::vec2& point1, const glm::vec2& point2) {
-    
-    const float dotProduct = glm::dot(point1, point2);
-    
-    
-    const float magnitude1 = glm::length(point1);
-    const float magnitude2 = glm::length(point2);
-
-    
-    if (magnitude1 == 0.0f || magnitude2 == 0.0f) {
-        throw std::invalid_argument("Uno dei vettori ha lunghezza zero.");
-    }
-
-    
-    float cosTheta = dotProduct / (magnitude1 * magnitude2);
-    cosTheta = glm::clamp(cosTheta, -1.0f, 1.0f);
-
-    return glm::acos(cosTheta);
-}
-
-/*
-
-    Formato punti:
-    std::vector<glm::vec2> left_points;
-    std::vector<glm::vec2> right_points;
-
-
-
-*/
-
-int main()
+int main(int argc, char* args[])
 {
-    glm::vec2 A = glm::vec2(0,1);
-    glm::vec2 B = glm::vec2(-1,0);
+    std::vector<glm::vec2> cones_blue;
+    std::vector<glm::vec2> cones_yellow;
+    loadTrack(cones_blue, "m_in.csv");
+    loadTrack(cones_yellow, "m_out.csv");
 
-    float dist = glm::distance(A,B);
-    std::cout << "dist = " << dist << '\n';
+    glm::vec2 veichle_position = glm::vec2(22.0, 46.0);
+    float angle = 0;
+    glm::vec2 vettore_direzione = glm::vec2(cos(angle), sin(angle));
+    
+    std::vector<glm::vec2> punti_finali_left;
+    std::vector<glm::vec2> punti_finali_right;
 
-    float angle = calculateAngle(A,B);
-    std::cout << "angle = " << angle << '\n';
+    begin_frame(cones_blue, cones_yellow, veichle_position, vettore_direzione, punti_finali_left, punti_finali_right);
 
-    plt::plot({1,3,2,4});
-    plt::show();
+    debug_plot(cones_blue, cones_yellow, punti_finali_left, punti_finali_right, veichle_position, vettore_direzione);
     return 0;
 }

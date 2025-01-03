@@ -4,6 +4,24 @@
 // they define _POSIX_C_SOURCE
 #include <Python.h>
 
+#ifdef _MSC_VER
+    #ifdef Py_DEBUG
+        static inline Py_ALWAYS_INLINE void Py_DECREF2(PyObject* op)
+        {
+            if (_Py_IsImmortal(op)) {
+                return;
+            }
+            _Py_DECREF_STAT_INC();
+            if (--op->ob_refcnt == 0) {
+                _Py_Dealloc(op);
+            }
+        }
+
+        #undef Py_DECREF
+        #define Py_DECREF(op) Py_DECREF2(_PyObject_CAST(op))
+    #endif
+#endif
+
 #include <vector>
 #include <map>
 #include <array>
