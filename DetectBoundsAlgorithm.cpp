@@ -167,7 +167,7 @@ glm::vec2 trova_punto_con_angolo(const glm::vec2& punto_iniziale, glm::vec2& vet
         // Calcolare l'angolo tra il vettore di direzione e il vettore dal punto iniziale al punto corrente
         const float angle = calculateAngle(vett_direzione, vettore_punto);
 
-        // Se l'angolo è minore del minimo trovato finora, aggiorna
+        // Se l'angolo Ã¨ minore del minimo trovato finora, aggiorna
         if (angle < min_angolo)
         {
             min_angolo = angle;
@@ -176,10 +176,10 @@ glm::vec2 trova_punto_con_angolo(const glm::vec2& punto_iniziale, glm::vec2& vet
 
     }
 
-    // Se non è stato trovato alcun punto, restituisci un messaggio di errore
+    // Se non Ã¨ stato trovato alcun punto, restituisci un messaggio di errore
     if (!punto_trovato.has_value())
     {
-        throw std::exception("Nessun punto trovato con angolo minore rispetto alla direzione.");
+        throw std::invalid_argument("Nessun punto trovato con angolo minore rispetto alla direzione.");
     }
 
     return punto_trovato.value();
@@ -204,7 +204,7 @@ glm::vec2 get_left_right_points(const glm::vec2& pos, const std::vector<glm::vec
         i++;
     }
 
-    // Se nessun punto è valido, lancia un'eccezione
+    // Se nessun punto Ã¨ valido, lancia un'eccezione
     if (valid_points.empty()) {
         throw std::runtime_error("Nessun punto valido trovato");
     }
