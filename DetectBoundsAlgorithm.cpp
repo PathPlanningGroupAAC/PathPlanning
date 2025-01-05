@@ -1,6 +1,5 @@
 #include "DetectBoundsAlgorithm.h"
-
-#define PI 3.14159265359
+#include <optional>
 
 /*
    _   _                  _ _   _               
@@ -19,11 +18,11 @@ void begin_frame(const std::vector<glm::vec2>& cones_blue, const std::vector<glm
     const float grado_spline = 2;
 
     // Primi 2 punti (sx, dx)
-    glm::vec2 lp = glm::vec2(22.353429448453898, 42.108144483620897); //lp
-    glm::vec2 lp2 = glm::vec2(24.316507170058600, 42.095788661670099); //lp2
+    glm::vec2 lp = get_left_right_points(veichle, cones_blue, dmax); //lp
+    glm::vec2 lp2 = trova_punto_con_angolo(lp, vettore_direzione, cones_blue); //lp2
     
-    glm::vec2 rp = glm::vec2(24.621401660872646, 47.625933776065160); //rp
-    glm::vec2 rp2 = glm::vec2(34.735435411001298, 47.530370713741398); //rp2
+    glm::vec2 rp = get_left_right_points(veichle, cones_yellow, dmax); //rp
+    glm::vec2 rp2 = trova_punto_con_angolo(rp, vettore_direzione, cones_yellow); //rp2
 
     punti_finali_left.push_back(lp);
     punti_finali_left.push_back(lp2);
@@ -39,6 +38,7 @@ void begin_frame(const std::vector<glm::vec2>& cones_blue, const std::vector<glm
         int j = 0;
         while(j < 2)
         {
+
             std::vector<glm::vec2> adiacenti = trova_adiacenti((j == 0) ? (cones_blue):(cones_yellow), dmax, (j == 0) ? (punti_finali_left):(punti_finali_right), angolo_max_ricerca);
             if(adiacenti.empty())
             {
@@ -83,8 +83,8 @@ std::vector<glm::vec2> nvd(const std::vector<glm::vec2>& punti_correnti, const s
 
     // Calcolo spline quadratiche
     std::vector<double> spline_x, spline_y;
-    spapi(grado_spline, t, x, spline_x);
-    spapi(grado_spline, t, y, spline_y);
+    spapi(grado_spline, x, spline_x);
+    spapi(grado_spline, y, spline_y);
 
     // Punto finale spline
     double x_end = fnval(spline_x, 1.0);
@@ -151,6 +151,78 @@ std::vector<glm::vec2> trova_adiacenti(const std::vector<glm::vec2>& all_points,
     return adiacenti;
 }
 
+glm::vec2 trova_punto_con_angolo(const glm::vec2& punto_iniziale, glm::vec2& vett_direzione, const std::vector<glm::vec2>& matrice_punti) {
+
+    // Inizializzare variabili
+    glm::vec2 norma_direzione = glm::normalize(vett_direzione); // Calcolare la norma del vettore di direzione
+    float min_angolo = std::numeric_limits<float>::infinity();  // Angolo minimo inizializzato a infinito
+    std::optional<glm::vec2> punto_trovato;                     // Punto trovato (inizialmente vuoto)
+
+    // Scorrere ogni punto nella matrice
+    for (const auto& punto : matrice_punti) {
+
+        // Calcolare il vettore dal punto iniziale al punto corrente
+        const glm::vec2 vettore_punto = punto - punto_iniziale;
+
+        // Calcolare l'angolo tra il vettore di direzione e il vettore dal punto iniziale al punto corrente
+        const float angle = calculateAngle(vett_direzione, vettore_punto);
+
+        // Se l'angolo è minore del minimo trovato finora, aggiorna
+        if (angle < min_angolo)
+        {
+            min_angolo = angle;
+            punto_trovato = punto;
+        }
+
+    }
+
+    // Se non è stato trovato alcun punto, restituisci un messaggio di errore
+    if (!punto_trovato.has_value())
+    {
+        throw std::exception("Nessun punto trovato con angolo minore rispetto alla direzione.");
+    }
+
+    return punto_trovato.value();
+}
+
+glm::vec2 get_left_right_points(const glm::vec2& pos, const std::vector<glm::vec2>& points, float max_distance)
+{
+    std::vector<float> distances;
+    for (const auto& point : points) {
+        distances.push_back(glm::distance(point, pos));
+    }
+
+    std::vector<float> valid_distances;
+    std::vector<glm::vec2> valid_points;     // Punti validi entro il range
+    int i = 0;
+    for (const auto& dist : distances) {
+        if (dist >= 2.5 && dist <= max_distance)
+        {
+            valid_points.push_back(points[i]);
+            valid_distances.push_back(distances[i]);
+        }
+        i++;
+    }
+
+    // Se nessun punto è valido, lancia un'eccezione
+    if (valid_points.empty()) {
+        throw std::runtime_error("Nessun punto valido trovato");
+    }
+
+    // Trova il punto con la distanza minima
+    float min_distance = std::numeric_limits<float>::infinity();
+    size_t min_idx = 0;
+    for (size_t i = 0; i < valid_distances.size(); ++i) {
+        if (valid_distances[i] < min_distance) {
+            min_distance = valid_distances[i];
+            min_idx = i;
+        }
+    }
+
+    return valid_points[min_idx];
+}
+
+
 /*
               _   _     
   /\/\   __ _| |_| |__  
@@ -173,7 +245,7 @@ float calculateAngle(const glm::vec2& point1, const glm::vec2& point2) {
     return glm::acos(cosTheta);
 }
 
-void spapi(int grado, const std::vector<double>& t, const std::vector<double>& valori, std::vector<double>& spline)
+void spapi(int grado, const std::vector<double>& valori, std::vector<double>& spline)
 {
     // DEBUG ONLY grado
     if (grado != 2)

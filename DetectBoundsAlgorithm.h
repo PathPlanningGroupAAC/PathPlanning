@@ -4,6 +4,8 @@
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 
+#define PI 3.14159265359
+
 /*
    _   _                  _ _   _               
   /_\ | | __ _  ___  _ __(_) |_| |__  _ __ ___  
@@ -39,6 +41,26 @@ std::vector<glm::vec2> nvd(const std::vector<glm::vec2>& punti_correnti, const s
  */
 std::vector<glm::vec2> trova_adiacenti(const std::vector<glm::vec2>& all_points, float raggio_di_ricerca, const std::vector<glm::vec2>& punti_scelti, float angolo_di_ricerca);
 
+/**
+ *  Funzione per trovare il punto con l'angolo minimo rispetto a un vettore di direzione.
+ *
+ *  Parametri:
+ *  punto_iniziale       -> Punto iniziale.
+ *  vett_direzione       -> Vettore direzione del punto iniziale.
+ *  matrice_punti        -> Punti rilevati.
+ */
+glm::vec2 trova_punto_con_angolo(const glm::vec2& punto_iniziale, glm::vec2& vett_direzione, const std::vector<glm::vec2>& matrice_punti);
+
+
+/**
+ *  Funzione per trovare il punto piu' vicino a pos.
+ *
+ *  Parametri:
+ *  pos                 -> Punto iniziale.
+ *  points              -> Lista punti.
+ *  max_distance        -> Distanza massima (constraint).
+ */
+glm::vec2 get_left_right_points(const glm::vec2& pos, const std::vector<glm::vec2>& points, float max_distance);
 
 /*
               _   _     
@@ -67,7 +89,7 @@ float calculateAngle(const glm::vec2& point1, const glm::vec2& point2);
  *  valori    -> I valori originali da interpolare.
  *  spline    -> Un vettore in uscita che conterrà i valori interpolati della spline.
  */
-void spapi(int grado, const std::vector<double>& t, const std::vector<double>& valori, std::vector<double>& spline);
+void spapi(int grado, const std::vector<double>& valori, std::vector<double>& spline);
 
  /**
   *  Funzione per interpolare spline quadratica.
