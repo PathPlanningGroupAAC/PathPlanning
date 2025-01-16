@@ -8,8 +8,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
 
-#include "zed_msgs_uc/msg/cones.hpp"
-#include "zed_msgs_uc/msg/cone.hpp"
+#include "zed_msgs/msg/cones.hpp"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
@@ -33,8 +32,8 @@ class PathPlannerNode : public rclcpp::Node
     : Node("pathplanner_node"), isValid(false)
     {
       odometry_Sub = this->create_subscription<nav_msgs::msg::Odometry>("/ukf_update_pose", 1, std::bind(&PathPlannerNode::odometryCallback, this, std::placeholders::_1));
-      landmark_Sub = this->create_subscription<zed_msgs_uc::msg::Cones>("/zed2i/topic_bbox_zed3d", 1, std::bind(&PathPlannerNode::landmarkCallback, this, std::placeholders::_1));
-    }
+      landmark_Sub = this->create_subscription<zed_msgs::msg::Cones>("/zed2i/topic_bbox_zed3d", 1, std::bind(&PathPlannerNode::landmarkCallback, this, std::placeholders::_1));
+    } 
 
   private:
 
@@ -64,7 +63,7 @@ class PathPlannerNode : public rclcpp::Node
       RCLCPP_INFO(this->get_logger(), "pos = [%f, %f]\ndir = [%f, %f]",x, y, direction.x, direction.y);
     }
 
-    void landmarkCallback(const zed_msgs_uc::msg::Cones::SharedPtr msg)
+    void landmarkCallback(const zed_msgs::msg::Cones::SharedPtr msg)
     {
       RCLCPP_INFO(this->get_logger(), "landmarkCallback");
       if(isValid)
@@ -100,7 +99,7 @@ class PathPlannerNode : public rclcpp::Node
     }
 
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_Sub;
-    rclcpp::Subscription<zed_msgs_uc::msg::Cones>::SharedPtr landmark_Sub;
+    rclcpp::Subscription<zed_msgs::msg::Cones>::SharedPtr landmark_Sub;
 };
 
 int main(int argc, char * argv[])

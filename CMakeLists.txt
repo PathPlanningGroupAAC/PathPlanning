@@ -10,10 +10,11 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
-find_package(zed_msgs_uc REQUIRED)
+find_package(zed_msgs REQUIRED)
 
 # Inlcude Directories
 include_directories(vendor/glm)
+include_directories(install/zed_msgs/include/zed_msgs)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -36,7 +37,7 @@ file(GLOB_RECURSE HEADERS "${CMAKE_SOURCE_DIR}/include/*.h")
 # Create the executable
 add_executable(path_planner ${CPP_SOURCES} ${HEADERS})
 
-ament_target_dependencies(path_planner rclcpp std_msgs nav_msgs zed_msgs_uc)
+ament_target_dependencies(path_planner rclcpp std_msgs nav_msgs zed_msgs)
 
 # Add the header's folder
 target_include_directories(path_planner
