@@ -4,6 +4,8 @@
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 
+#include <vector>
+
 #define PI 3.14159265359
 
 /*
@@ -14,6 +16,15 @@
 \_/ \_/_|\__, |\___/|_|  |_|\__|_| |_|_| |_| |_|
          |___/                                      
 */
+
+struct Frame
+{
+    std::vector<glm::vec2> blueCones;
+    std::vector<glm::vec2> yellowCones;
+
+    glm::vec2 veichlePosition;
+    glm::vec2 veichleDirection;
+};
 
 /**
  *  Punto di ingresso dell'algoritmo.

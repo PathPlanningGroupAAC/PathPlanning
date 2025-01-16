@@ -31,32 +31,39 @@ void begin_frame(const std::vector<glm::vec2>& cones_blue, const std::vector<glm
     punti_finali_right.push_back(rp2);
 
     // Inizio algoritmo
-    const int max_points = cones_blue.size(); // ASSUNTO che siano della stessa dimensione
+    const int max_points_blue = cones_blue.size();
     int i = 0;
-    while(i < max_points)
+    while(i < max_points_blue)
     {
-        int j = 0;
-        while(j < 2)
+        std::vector<glm::vec2> adiacenti = trova_adiacenti(cones_blue, dmax, punti_finali_left, angolo_max_ricerca);
+
+        if (adiacenti.empty())
         {
-
-            std::vector<glm::vec2> adiacenti = trova_adiacenti((j == 0) ? (cones_blue):(cones_yellow), dmax, (j == 0) ? (punti_finali_left):(punti_finali_right), angolo_max_ricerca);
-            if(adiacenti.empty())
-            {
-                //TODO: Restituire qualcosa?
-                std::cout << "ERROR\n";
-                return;
-            }
-
-            if (j == 0)
-            {
-                punti_finali_left = nvd(punti_finali_left, adiacenti, grado_spline);
-            }
-            else {
-                punti_finali_right = nvd(punti_finali_right, adiacenti, grado_spline);
-            }
-
-            j++;
+            //TODO: Restituire qualcosa?
+            std::cout << "ERROR\n";
+            return;
         }
+
+        punti_finali_left = nvd(punti_finali_left, adiacenti, grado_spline);
+
+        i++;
+    }
+
+    const int max_points_yellow = cones_yellow.size();
+    i = 0;
+    while (i < max_points_yellow)
+    {
+        std::vector<glm::vec2> adiacenti = trova_adiacenti(cones_yellow, dmax, punti_finali_right, angolo_max_ricerca);
+
+        if (adiacenti.empty())
+        {
+            //TODO: Restituire qualcosa?
+            std::cout << "ERROR\n";
+            return;
+        }
+
+        punti_finali_right = nvd(punti_finali_right, adiacenti, grado_spline);
+
         i++;
     }
 
