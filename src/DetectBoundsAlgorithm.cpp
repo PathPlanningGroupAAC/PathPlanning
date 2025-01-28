@@ -10,11 +10,13 @@
          |___/                                      
 */
 
+#define DISTANZA_MINIMA 0.0f
+
 void begin_frame(const std::vector<glm::vec2>& cones_blue, const std::vector<glm::vec2>& cones_yellow, glm::vec2 veichle, glm::vec2 vettore_direzione, std::vector<glm::vec2>& punti_finali_left, std::vector<glm::vec2>& punti_finali_right)
 {
     // Constraints
-    const float dmax = 5.5;
-    const float angolo_max_ricerca = 1.396;
+    const float dmax = 7;
+    const float angolo_max_ricerca = PI;
     const float grado_spline = 2;
 
     // Primi 2 punti (sx, dx)
@@ -31,32 +33,39 @@ void begin_frame(const std::vector<glm::vec2>& cones_blue, const std::vector<glm
     punti_finali_right.push_back(rp2);
 
     // Inizio algoritmo
-    const int max_points = cones_blue.size(); // ASSUNTO che siano della stessa dimensione
+    const int max_points_blue = cones_blue.size();
     int i = 0;
-    while(i < max_points)
+    while(i < max_points_blue)
     {
-        int j = 0;
-        while(j < 2)
+        std::vector<glm::vec2> adiacenti = trova_adiacenti(cones_blue, dmax, punti_finali_left, angolo_max_ricerca, dmax);
+
+        if (adiacenti.empty())
         {
-
-            std::vector<glm::vec2> adiacenti = trova_adiacenti((j == 0) ? (cones_blue):(cones_yellow), dmax, (j == 0) ? (punti_finali_left):(punti_finali_right), angolo_max_ricerca);
-            if(adiacenti.empty())
-            {
-                //TODO: Restituire qualcosa?
-                std::cout << "ERROR\n";
-                return;
-            }
-
-            if (j == 0)
-            {
-                punti_finali_left = nvd(punti_finali_left, adiacenti, grado_spline);
-            }
-            else {
-                punti_finali_right = nvd(punti_finali_right, adiacenti, grado_spline);
-            }
-
-            j++;
+            //TODO: Restituire qualcosa?
+            std::cout << "ERROR\n";
+            return;
         }
+
+        punti_finali_left = nvd(punti_finali_left, adiacenti, grado_spline);
+
+        i++;
+    }
+
+    const int max_points_yellow = cones_yellow.size();
+    i = 0;
+    while (i < max_points_yellow)
+    {
+        std::vector<glm::vec2> adiacenti = trova_adiacenti(cones_yellow, dmax, punti_finali_right, angolo_max_ricerca, dmax);
+
+        if (adiacenti.empty())
+        {
+            //TODO: Restituire qualcosa?
+            std::cout << "ERROR\n";
+            return;
+        }
+
+        punti_finali_right = nvd(punti_finali_right, adiacenti, grado_spline);
+
         i++;
     }
 
@@ -118,7 +127,7 @@ std::vector<glm::vec2> nvd(const std::vector<glm::vec2>& punti_correnti, const s
     return punti_aggiornati;
 }
 
-std::vector<glm::vec2> trova_adiacenti(const std::vector<glm::vec2>& all_points, float raggio_di_ricerca, const std::vector<glm::vec2>& punti_scelti, float angolo_di_ricerca) {
+std::vector<glm::vec2> trova_adiacenti(const std::vector<glm::vec2>& all_points, float raggio_di_ricerca, const std::vector<glm::vec2>& punti_scelti, float angolo_di_ricerca, float dmax) {
     float distanza_max = raggio_di_ricerca;
     glm::vec2 ultimo_punto = punti_scelti.back(); 
     glm::vec2 penultimo_punto = punti_scelti[ punti_scelti.size() - 2 ];
@@ -136,14 +145,20 @@ std::vector<glm::vec2> trova_adiacenti(const std::vector<glm::vec2>& all_points,
             glm::vec2 vettore_ultimo_segmento = ultimo_punto - penultimo_punto;
             glm::vec2 vettore_cono_filtrato = punto_attuale - ultimo_punto;
             float angolo = calculateAngle(vettore_ultimo_segmento, vettore_cono_filtrato);
-
-            if (distanza <= distanza_max && distanza >= 2.0f && angolo < angolo_di_ricerca) {
+            
+            
+            if (distanza <= distanza_max && distanza >= DISTANZA_MINIMA && angolo <= angolo_di_ricerca) {
                 adiacenti.push_back(punto_attuale);
+            }
+
+            if (adiacenti.empty())
+            {
+                throw std::invalid_argument("EMPTYYYYY");
             }
         }
 
         // Aumenta dmax e cerca di nuovo se non hai trovato adiacenti (fino a un massimo di 8m)
-        if (adiacenti.empty() && distanza_max < 8.5f) {
+        if (adiacenti.empty() && distanza_max < (dmax*2.f)+0.5f) {
             restart = true;
             distanza_max += 0.5f;  // Aumenta la distanza massima
         }
@@ -195,7 +210,8 @@ glm::vec2 get_left_right_points(const glm::vec2& pos, const std::vector<glm::vec
     std::vector<glm::vec2> valid_points;     // Punti validi entro il range
     int i = 0;
     for (const auto& dist : distances) {
-        if (dist >= 2.5 && dist <= max_distance)
+        //if (dist >= 1.0 && dist <= max_distance)
+        if (dist <= max_distance)
         {
             valid_points.push_back(points[i]);
             valid_distances.push_back(distances[i]);
@@ -220,6 +236,62 @@ glm::vec2 get_left_right_points(const glm::vec2& pos, const std::vector<glm::vec
 
     return valid_points[min_idx];
 }
+
+bool arePointsEqual(const glm::vec2& p1, const glm::vec2& p2, float epsilon)
+{
+    return glm::length(p1 - p2) < epsilon;
+}
+
+void remove_same_cones(const Frame& prec, Frame& cur)
+{
+    std::vector<int> idx;
+
+    // Cancello punti a sinistra
+    {
+        const int size = cur.punti_finali_left.size();
+        for(int i = 0; i < size; i++)
+        {
+            const int size_prec = prec.punti_finali_left.size();
+            for(int j = 0; j < size_prec; j++)
+            {
+                if(arePointsEqual(cur.punti_finali_left[i], prec.punti_finali_left[j]))
+                {
+                    idx.push_back(i);
+                }
+            }
+        }
+
+        for(int i = 0; i < (int)idx.size(); i++)
+        {
+            cur.punti_finali_left.erase(cur.punti_finali_left.begin() + idx[i]);
+        }
+
+        idx.clear();
+    }
+
+
+    // Cancello punti a destra
+    {
+        const int size = cur.punti_finali_right.size();
+        for(int i = 0; i < size; i++)
+        {
+            const int size_prec = prec.punti_finali_right.size();
+            for(int j = 0; j < size_prec; j++)
+            {
+                if(arePointsEqual(cur.punti_finali_right[i], prec.punti_finali_right[j]))
+                {
+                    idx.push_back(i);
+                }
+            }
+        }
+
+        for(int i = 0; i < (int)idx.size(); i++)
+        {
+            cur.punti_finali_right.erase(cur.punti_finali_right.begin() + idx[i]);
+        }
+    }
+}
+
 
 
 /*
