@@ -10,6 +10,8 @@
 
 #include "zed_msgs/msg/cones.hpp"
 
+#include "std_msgs/msg/float32_multi_array.hpp"
+
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -31,6 +33,8 @@ class PathPlannerNode : public rclcpp::Node
     PathPlannerNode()
     : Node("pathplanner_node"), isValid(false)
     {
+      points_map = this->create_publisher<std_msgs::msg::Float32MultiArray>("multi_points", 10);
+
       odometry_Sub = this->create_subscription<nav_msgs::msg::Odometry>("/ukf_update_pose", 1, std::bind(&PathPlannerNode::odometryCallback, this, std::placeholders::_1));
       landmark_Sub = this->create_subscription<zed_msgs::msg::Cones>("/zed2i/topic_bbox_zed3d", 1, std::bind(&PathPlannerNode::landmarkCallback, this, std::placeholders::_1));
     } 
@@ -52,8 +56,8 @@ class PathPlannerNode : public rclcpp::Node
       float qw = msg->pose.pose.orientation.w;
 
       glm::quat quaternion(qw, qx, qy, qz); // GLM usa (w, x, y, z)
-      float theta = 2.0f * std::atan2(quaternion.z, quaternion.w);
-
+      //float theta = 2.0f * std::atan2(quaternion.z, quaternion.w);
+      float theta = quaternion.z;
       // Calcola il vettore direzione
       glm::vec2 direction(glm::cos(theta), glm::sin(theta));
       frame->veichleDirection = direction;
@@ -65,6 +69,7 @@ class PathPlannerNode : public rclcpp::Node
 
     void landmarkCallback(const zed_msgs::msg::Cones::SharedPtr msg)
     {
+      std::vector<float> x, y;
       RCLCPP_INFO(this->get_logger(), "landmarkCallback");
       if(isValid)
       {
@@ -81,22 +86,44 @@ class PathPlannerNode : public rclcpp::Node
         for(int i = 0; i < blue_cones_size; i++)
         {
             frame->blueCones[i] = glm::vec2(msg->blue_cones[i].x, msg->blue_cones[i].y);
+            x.push_back(msg->blue_cones[i].x);
+            y.push_back(msg->blue_cones[i].y);
+
+            std_msgs::msg::Float32MultiArray msg_to_publish;
+
+            std_msgs::msg::MultiArrayDimension dim;
+            dim.label = "points";
+            dim.size = 2;
+            dim.stride = 2;
+            msg_to_publish.layout.dim.push_back(dim);
+
+            // Aggiungiamo i dati (3 punti 2D)
+            msg_to_publish.data = {msg->blue_cones[i].x, msg->blue_cones[i].y};
+
+            points_map->publish(msg_to_publish);
         }
 
         for(int i = 0; i < yellow_cones_size; i++)
         {
             frame->yellowCones[i] = glm::vec2(msg->yellow_cones[i].x, msg->yellow_cones[i].y);
+            x.push_back(msg->yellow_cones[i].x);
+            y.push_back(msg->yellow_cones[i].y);
         }
 
-        std::vector<glm::vec2> punti_finali_left;
-        std::vector<glm::vec2> punti_finali_right;
+        begin_frame(frame->blueCones, frame->yellowCones, frame->veichlePosition, frame->veichleDirection, frame->punti_finali_left, frame->punti_finali_right);
 
-        begin_frame(frame->blueCones, frame->yellowCones, frame->veichlePosition, frame->veichleDirection, punti_finali_left, punti_finali_right);
+        // "Pulizia" del frame (rimozione di punti gia' misurati)
+        if(frames.size() >= 2)
+        {
+            remove_same_cones(*(frames[frames.size()-2]), *frame);
+        }
 
-        RCLCPP_INFO(this->get_logger(), "%d %d %d %d", blue_cones_size, (int)punti_finali_left.size(), yellow_cones_size, (int)punti_finali_right.size());
+        // Passaggio alla Delaunay
       }
       
     }
+
+    rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr points_map;
 
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_Sub;
     rclcpp::Subscription<zed_msgs::msg::Cones>::SharedPtr landmark_Sub;

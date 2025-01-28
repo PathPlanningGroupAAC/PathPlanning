@@ -22,6 +22,9 @@ struct Frame
     std::vector<glm::vec2> blueCones;
     std::vector<glm::vec2> yellowCones;
 
+    std::vector<glm::vec2> punti_finali_left;
+    std::vector<glm::vec2> punti_finali_right;
+
     glm::vec2 veichlePosition;
     glm::vec2 veichleDirection;
 };
@@ -50,7 +53,7 @@ std::vector<glm::vec2> nvd(const std::vector<glm::vec2>& punti_correnti, const s
  *  punti_scelti      -> Punti già analizzati e presi.
  *  angolo_di_ricerca -> Angolo.
  */
-std::vector<glm::vec2> trova_adiacenti(const std::vector<glm::vec2>& all_points, float raggio_di_ricerca, const std::vector<glm::vec2>& punti_scelti, float angolo_di_ricerca);
+std::vector<glm::vec2> trova_adiacenti(const std::vector<glm::vec2>& all_points, float raggio_di_ricerca, const std::vector<glm::vec2>& punti_scelti, float angolo_di_ricerca, float dmax);
 
 /**
  *  Funzione per trovare il punto con l'angolo minimo rispetto a un vettore di direzione.
@@ -72,6 +75,10 @@ glm::vec2 trova_punto_con_angolo(const glm::vec2& punto_iniziale, glm::vec2& vet
  *  max_distance        -> Distanza massima (constraint).
  */
 glm::vec2 get_left_right_points(const glm::vec2& pos, const std::vector<glm::vec2>& points, float max_distance);
+
+bool arePointsEqual(const glm::vec2& p1, const glm::vec2& p2, float epsilon = 1e-5f);
+
+void remove_same_cones(const Frame& prec, Frame& cur);
 
 /*
               _   _     
