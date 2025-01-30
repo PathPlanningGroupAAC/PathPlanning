@@ -84,12 +84,6 @@ std::vector<glm::vec2> nvd(const std::vector<glm::vec2>& punti_correnti, const s
         y.push_back(p.y);
     }
 
-    // Crea vettore t (intervallo normalizzato)
-    std::vector<double> t(punti_correnti.size());
-    for (size_t i = 0; i < t.size(); ++i) {
-        t[i] = static_cast<double>(i) / (t.size() - 1);
-    }
-
     // Calcolo spline quadratiche
     std::vector<double> spline_x, spline_y;
     spapi(grado_spline, x, spline_x);
