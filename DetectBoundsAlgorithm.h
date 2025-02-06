@@ -91,6 +91,8 @@ float calculateAngle(const glm::vec2& point1, const glm::vec2& point2);
  */
 void spapi(int grado, const std::vector<double>& valori, std::vector<double>& spline);
 
+void spapi2(int grado, const std::vector<double>& valori, std::vector<double>& spline);
+
  /**
   *  Funzione per interpolare spline quadratica.
   *
@@ -99,3 +101,5 @@ void spapi(int grado, const std::vector<double>& valori, std::vector<double>& sp
   *  t         -> Secondo Punto.
   */
 double fnval(const std::vector<double>& spline, double t);
+
+double fnval2(const std::vector<double>& spline, double t);

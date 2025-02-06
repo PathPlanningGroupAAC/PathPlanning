@@ -31,32 +31,39 @@ void begin_frame(const std::vector<glm::vec2>& cones_blue, const std::vector<glm
     punti_finali_right.push_back(rp2);
 
     // Inizio algoritmo
-    const int max_points = cones_blue.size(); // ASSUNTO che siano della stessa dimensione
+    const int max_points_blue = cones_blue.size();
     int i = 0;
-    while(i < max_points)
+    while(i < max_points_blue)
     {
-        int j = 0;
-        while(j < 2)
+        std::vector<glm::vec2> adiacenti = trova_adiacenti(cones_blue, dmax, punti_finali_left, angolo_max_ricerca);
+
+        if (adiacenti.empty())
         {
-
-            std::vector<glm::vec2> adiacenti = trova_adiacenti((j == 0) ? (cones_blue):(cones_yellow), dmax, (j == 0) ? (punti_finali_left):(punti_finali_right), angolo_max_ricerca);
-            if(adiacenti.empty())
-            {
-                //TODO: Restituire qualcosa?
-                std::cout << "ERROR\n";
-                return;
-            }
-
-            if (j == 0)
-            {
-                punti_finali_left = nvd(punti_finali_left, adiacenti, grado_spline);
-            }
-            else {
-                punti_finali_right = nvd(punti_finali_right, adiacenti, grado_spline);
-            }
-
-            j++;
+            //TODO: Restituire qualcosa?
+            std::cout << "ERROR\n";
+            return;
         }
+
+        punti_finali_left = nvd(punti_finali_left, adiacenti, grado_spline);
+
+        i++;
+    }
+
+    const int max_points_yellow = cones_yellow.size();
+    i = 0;
+    while (i < max_points_yellow)
+    {
+        std::vector<glm::vec2> adiacenti = trova_adiacenti(cones_yellow, dmax, punti_finali_right, angolo_max_ricerca);
+
+        if (adiacenti.empty())
+        {
+            //TODO: Restituire qualcosa?
+            std::cout << "ERROR\n";
+            return;
+        }
+
+        punti_finali_right = nvd(punti_finali_right, adiacenti, grado_spline);
+
         i++;
     }
 
@@ -85,6 +92,7 @@ std::vector<glm::vec2> nvd(const std::vector<glm::vec2>& punti_correnti, const s
     std::vector<double> spline_x, spline_y;
     spapi(grado_spline, x, spline_x);
     spapi(grado_spline, y, spline_y);
+
 
     // Punto finale spline
     double x_end = fnval(spline_x, 1.0);
@@ -264,6 +272,39 @@ void spapi(int grado, const std::vector<double>& valori, std::vector<double>& sp
     spline[n - 1] = valori[n - 1];
 }
 
+void spapi2(int grado, const std::vector<double>& valori, std::vector<double>& spline) {
+    if (grado != 2) {
+        throw std::invalid_argument("Grado non valido: atteso 2");
+    }
+
+    int n = valori.size();
+    if (n < 2) {
+        throw std::invalid_argument("Ci devono essere almeno due punti.");
+    }
+
+    spline.resize(n);
+
+    // Calcolare i coefficienti della spline quadratica
+    // Supponiamo che i punti siano (x0, y0), (x1, y1), ..., (xn-1, yn-1)
+
+    // I coefficienti della spline quadratica sono determinati risolvendo un sistema di equazioni lineari
+    std::vector<double> a(n - 1), b(n - 1), c(n - 1);
+
+    // Passo 1: Calcoliamo la matrice di sistema
+    for (int i = 0; i < n - 1; ++i) {
+        double dx = valori[i + 1] - valori[i]; // distanza tra i punti
+        a[i] = (valori[i + 1] - valori[i]) / (dx * dx);
+        b[i] = 2.0 * (valori[i] - valori[i + 1]);
+        c[i] = valori[i];  // c[i] rappresenta il valore della spline a i-th punto
+    }
+
+    // Step 2: Definire la spline utilizzando i coefficienti calcolati
+    for (int i = 0; i < n - 1; ++i) {
+        spline[i] = a[i] * valori[i] * valori[i] + b[i] * valori[i] + c[i];
+    }
+
+}
+
 double fnval(const std::vector<double>& spline, double t)
 {
     // Valutazione spline con interpolazione lineare
@@ -272,5 +313,18 @@ double fnval(const std::vector<double>& spline, double t)
     if (t >= 1) return spline[n - 1];
     int idx = static_cast<int>(t * (n - 1));
     double alpha = t * (n - 1) - idx;
+    return (1 - alpha) * spline[idx] + alpha * spline[idx + 1];
+}
+
+double fnval2(const std::vector<double>& spline, double t) {
+    int n = spline.size();
+    if (t <= 0) return spline[0];             // Estremo sinistro
+    if (t >= 1) return spline[n - 1];         // Estremo destro
+
+    // Trova il segmento corretto
+    int idx = static_cast<int>(t * (n - 1));
+    double alpha = t * (n - 1) - idx;
+
+    // Interpolazione lineare tra spline[idx] e spline[idx + 1]
     return (1 - alpha) * spline[idx] + alpha * spline[idx + 1];
 }
