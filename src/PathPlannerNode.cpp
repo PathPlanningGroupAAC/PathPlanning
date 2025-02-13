@@ -4,19 +4,22 @@
 #include <string>
 
 #include <nav_msgs/msg/odometry.hpp>
-
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
-
 #include "zed_msgs/msg/cones.hpp"
-
 #include "std_msgs/msg/float32_multi_array.hpp"
+
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
 #include "DetectBoundsAlgorithm.h"
+
+#include <filesystem>
+#include <fstream>
 
 #include <vector>
 
@@ -55,15 +58,21 @@ class PathPlannerNode : public rclcpp::Node
       float qz = msg->pose.pose.orientation.z;
       float qw = msg->pose.pose.orientation.w;
 
-      glm::quat quaternion(qw, qx, qy, qz); // GLM usa (w, x, y, z)
-      //float theta = 2.0f * std::atan2(quaternion.z, quaternion.w);
-      float theta = quaternion.z;
+      // Coversione da quat ad eulero
+      tf2::Quaternion quat(qx, qy, qz, qw);
+      tf2::Matrix3x3 mat(quat);
+
+      double roll, pitch, yaw;
+      ///mat.getRPY(roll, pitch, yaw);
+      
+
       // Calcola il vettore direzione
-      glm::vec2 direction(glm::cos(theta), glm::sin(theta));
+      glm::vec2 direction(msg->pose.pose.orientation.x, msg->pose.pose.orientation.y);
       frame->veichleDirection = direction;
 
       frames.push_back(frame);
 
+      RCLCPP_INFO(this->get_logger(), "------------------ FRAME[%d] -------------------\n", frames.size()-1);
       RCLCPP_INFO(this->get_logger(), "pos = [%f, %f]\ndir = [%f, %f]",x, y, direction.x, direction.y);
     }
 
@@ -71,6 +80,11 @@ class PathPlannerNode : public rclcpp::Node
     {
       std::vector<float> x, y;
       RCLCPP_INFO(this->get_logger(), "landmarkCallback");
+      
+      char separator = std::filesystem::path::preferred_separator;
+      std::string absolute_in = std::filesystem::current_path().string() + separator + "m_in.csv";
+      std::string absolute_out = std::filesystem::current_path().string() + separator + "m_out.csv";
+
       if(isValid)
       {
         isValid = false;
@@ -85,22 +99,37 @@ class PathPlannerNode : public rclcpp::Node
 
         for(int i = 0; i < blue_cones_size; i++)
         {
+          glm::vec2 cone = glm::vec2(msg->blue_cones[i].x, msg->blue_cones[i].y);
+          std::cout << cone.x << "," << cone.y << '\n';   
+        }
+
+        std::cout <<  "###" << '\n';
+
+        for(int i = 0; i < yellow_cones_size; i++)
+        {
+          glm::vec2 cone = glm::vec2(msg->yellow_cones[i].x, msg->yellow_cones[i].y);
+          std::cout << cone.x << "," << cone.y << '\n';   
+        }
+
+        /*std::fstream f_in(absolute_in, std::fstream::in | std::fstream::out | std::fstream::app);
+        for(int i = 0; i < blue_cones_size; i++)
+        {
+          glm::vec2 cone = frame->veichlePosition +glm::vec2(msg->blue_cones[i].x, msg->blue_cones[i].y);
+          f_in << cone.x << "," << cone.y << '\n';   
+        }
+        
+        std::fstream f_out(absolute_out, std::fstream::in | std::fstream::out | std::fstream::app);
+        for(int i = 0; i < yellow_cones_size; i++)
+        {
+          glm::vec2 cone = frame->veichlePosition +glm::vec2(msg->yellow_cones[i].x, msg->yellow_cones[i].y);
+          f_out << cone.x << "," << cone.y << '\n';
+        }*/
+
+        for(int i = 0; i < blue_cones_size; i++)
+        {
             frame->blueCones[i] = glm::vec2(msg->blue_cones[i].x, msg->blue_cones[i].y);
             x.push_back(msg->blue_cones[i].x);
             y.push_back(msg->blue_cones[i].y);
-
-            std_msgs::msg::Float32MultiArray msg_to_publish;
-
-            std_msgs::msg::MultiArrayDimension dim;
-            dim.label = "points";
-            dim.size = 2;
-            dim.stride = 2;
-            msg_to_publish.layout.dim.push_back(dim);
-
-            // Aggiungiamo i dati (3 punti 2D)
-            msg_to_publish.data = {msg->blue_cones[i].x, msg->blue_cones[i].y};
-
-            points_map->publish(msg_to_publish);
         }
 
         for(int i = 0; i < yellow_cones_size; i++)
@@ -112,10 +141,12 @@ class PathPlannerNode : public rclcpp::Node
 
         begin_frame(frame->blueCones, frame->yellowCones, frame->veichlePosition, frame->veichleDirection, frame->punti_finali_left, frame->punti_finali_right);
 
+        RCLCPP_INFO(this->get_logger(), "END FRAME");
+
         // "Pulizia" del frame (rimozione di punti gia' misurati)
         if(frames.size() >= 2)
         {
-            remove_same_cones(*(frames[frames.size()-2]), *frame);
+            //remove_same_cones(*(frames[frames.size()-2]), *frame);
         }
 
         // Passaggio alla Delaunay

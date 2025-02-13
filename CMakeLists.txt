@@ -11,6 +11,7 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(zed_msgs REQUIRED)
+find_package(tf2 REQUIRED)
 
 # Inlcude Directories
 include_directories(vendor/glm)
@@ -37,7 +38,7 @@ file(GLOB_RECURSE HEADERS "${CMAKE_SOURCE_DIR}/include/*.h")
 # Create the executable
 add_executable(path_planner ${CPP_SOURCES} ${HEADERS})
 
-ament_target_dependencies(path_planner rclcpp std_msgs nav_msgs zed_msgs)
+ament_target_dependencies(path_planner rclcpp std_msgs nav_msgs zed_msgs tf2)
 
 # Add the header's folder
 target_include_directories(path_planner

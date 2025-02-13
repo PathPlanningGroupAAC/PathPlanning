@@ -15,8 +15,8 @@
 void begin_frame(const std::vector<glm::vec2>& cones_blue, const std::vector<glm::vec2>& cones_yellow, glm::vec2 veichle, glm::vec2 vettore_direzione, std::vector<glm::vec2>& punti_finali_left, std::vector<glm::vec2>& punti_finali_right)
 {
     // Constraints
-    const float dmax = 7;
-    const float angolo_max_ricerca = PI;
+    const float dmax = 5.5;
+    const float angolo_max_ricerca = 1.396;
     const float grado_spline = 2;
 
     // Primi 2 punti (sx, dx)
@@ -129,7 +129,7 @@ std::vector<glm::vec2> nvd(const std::vector<glm::vec2>& punti_correnti, const s
 
 std::vector<glm::vec2> trova_adiacenti(const std::vector<glm::vec2>& all_points, float raggio_di_ricerca, const std::vector<glm::vec2>& punti_scelti, float angolo_di_ricerca, float dmax) {
     float distanza_max = raggio_di_ricerca;
-    glm::vec2 ultimo_punto = punti_scelti.back(); 
+    glm::vec2 ultimo_punto = punti_scelti[ punti_scelti.size() - 1]; 
     glm::vec2 penultimo_punto = punti_scelti[ punti_scelti.size() - 2 ];
 
     std::vector<glm::vec2> adiacenti;
@@ -146,14 +146,8 @@ std::vector<glm::vec2> trova_adiacenti(const std::vector<glm::vec2>& all_points,
             glm::vec2 vettore_cono_filtrato = punto_attuale - ultimo_punto;
             float angolo = calculateAngle(vettore_ultimo_segmento, vettore_cono_filtrato);
             
-            
-            if (distanza <= distanza_max && distanza >= DISTANZA_MINIMA && angolo <= angolo_di_ricerca) {
+            if (distanza <= distanza_max && distanza >= DISTANZA_MINIMA) {
                 adiacenti.push_back(punto_attuale);
-            }
-
-            if (adiacenti.empty())
-            {
-                throw std::invalid_argument("EMPTYYYYY");
             }
         }
 
@@ -163,6 +157,7 @@ std::vector<glm::vec2> trova_adiacenti(const std::vector<glm::vec2>& all_points,
             distanza_max += 0.5f;  // Aumenta la distanza massima
         }
     }
+
     return adiacenti;
 }
 
