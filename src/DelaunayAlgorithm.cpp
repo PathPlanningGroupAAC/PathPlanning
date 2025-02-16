@@ -1,4 +1,7 @@
 #include "DelaunayAlgorithm.h"
+#include "DetectBoundsAlgorithm.h"
+
+#include <fstream>
 
 DelaunayAlgorithm::DelaunayAlgorithm(rclcpp::Publisher<control_msgs::msg::WaypointArrayStamped>::SharedPtr& publisher_waypoints_,
     rclcpp::Publisher<control_msgs::msg::WaypointArrayStamped>::SharedPtr& publisher_spline_points_,
@@ -11,36 +14,11 @@ DelaunayAlgorithm::DelaunayAlgorithm(rclcpp::Publisher<control_msgs::msg::Waypoi
 
 void DelaunayAlgorithm::timer_callback(const std::vector<glm::vec2>& punti_finali_left, const std::vector<glm::vec2>& punti_finali_right)
 {
-    // Esegui lo spacchettamento e filtraggio dei coni
-    /*
-    for (const auto &cone : msg_cones.big_orange_cones)
-    {
-        xBigO.push_back(cone.x);
-        yBigO.push_back(cone.y);
-    }
-
-    for (const auto &cone : msg_cones.little_orange_cones)
-    {
-        xLittleO.push_back(cone.x);
-        yLittleO.push_back(cone.y);
-        if (cone.y > 0)
-        {
-            xBlue.push_back(cone.x);
-            yBlue.push_back(cone.y);
-        }
-        else
-        {
-            xYellow.push_back(cone.x);
-            yYellow.push_back(cone.y);
-        }
-    }
-    */
 
     for (const auto &cone : punti_finali_left)
     {
         //if (std::abs(cone.y) < filter_param_y_ && std::sqrt(cone.x * cone.x + cone.y * cone.y) < filter_param_distance_)
         {
-            RCLCPP_INFO(this->get_logger(), "push blu");
 
             xBlue.push_back(cone.x);
             yBlue.push_back(cone.y);
@@ -51,7 +29,6 @@ void DelaunayAlgorithm::timer_callback(const std::vector<glm::vec2>& punti_final
     {
         //if (std::abs(cone.y) < filter_param_y_ && std::sqrt(cone.x * cone.x + cone.y * cone.y) < filter_param_distance_)
         {
-            RCLCPP_INFO(this->get_logger(), "push gialli");
             xYellow.push_back(cone.x);
             yYellow.push_back(cone.y);
         }
@@ -82,8 +59,8 @@ void DelaunayAlgorithm::timer_callback(const std::vector<glm::vec2>& punti_final
     */
 
     for (size_t i = 0; i < xBlue.size(); ++i)
+    {
         {
-            RCLCPP_INFO(this->get_logger(), "dentro filtered");
             zed_msgs::msg::Cone blue_cone;
             blue_cone.cone_type = 2;
             blue_cone.x = xBlue[i];
@@ -103,13 +80,11 @@ void DelaunayAlgorithm::timer_callback(const std::vector<glm::vec2>& punti_final
         }
     }
 
-    RCLCPP_INFO(this->get_logger(), "%d %d", xBlue.size(), xYellow.size());
     //caso base delaunay ovvero almeno tre coni di diverso colore
-    if((xBlue.size() >0 && xYellow.size() >0) && (xBlue.size() + xYellow.size() > 2))
+    if((xBlue.size() > 0 && xYellow.size() >0) && (xBlue.size() + xYellow.size() > 2))
     {
         if((xBlue.size()>1) || (xYellow.size()>1))
         {
-            RCLCPP_INFO(this->get_logger(), "chiamo la funzione delaunay");
             delaunayCalculation();
         }
     }
@@ -118,7 +93,6 @@ void DelaunayAlgorithm::timer_callback(const std::vector<glm::vec2>& punti_final
     spline(max_spline_degree_, Waypoints);
 
     // Pubblica i coni filtrati
-    RCLCPP_INFO(this->get_logger(), "--- Pubblico i coni filtrati ---");
     publish_waypoints(Waypoints);
     publisher_filtered_cones_->publish(filtered_cones);
 
@@ -158,9 +132,7 @@ void DelaunayAlgorithm::delaunayCalculation() {
     }
     */
     
-    RCLCPP_INFO(this->get_logger(), "postt spacchettamento");
     
-    if(points.size()==0){RCLCPP_INFO(this->get_logger(), "!sexy");}
     std::vector<CustomEdge> edges;
     CDT::Triangulation<float> cdt; 
 
@@ -191,21 +163,17 @@ void DelaunayAlgorithm::delaunayCalculation() {
         }
 
     //calcolo waypoints (punto centrale edges)
-    RCLCPP_INFO(this->get_logger(), "post insert vertex");
 
     
-        if(cdt.triangles.size()==0){RCLCPP_INFO(this->get_logger(), "porco troio");}
-        //if(lati){RCLCPP_INFO(this->get_logger(), "ci sta");}
+        //if(lati){RCLCPP_INFO(PathPlannerNode::Instance->get_logger(), "ci sta");}
         
         //controllo che gli edgedes stanno nel vettore xblue o xyellow 
         if((!xBlue.empty() && !yBlue.empty()))
         {
             int foundBV1 = 0;
             int foundBV2 = 0;
-            RCLCPP_INFO(this->get_logger(), "nell if");
 
             for(auto lato : lati){
-                RCLCPP_INFO(this->get_logger(), "nel for");
                 for(size_t i = 0; i < xBlue.size(); ++i)
                 {
                     if(cdt.vertices[lato.v1()].x == xBlue[i])
@@ -216,7 +184,6 @@ void DelaunayAlgorithm::delaunayCalculation() {
                             if(cdt.vertices[lato.v1()].y == yBlue[j])
                             {
                                 foundBV1 = 1;
-                                RCLCPP_INFO(this->get_logger(), " blue vero");
                             }
                         }
                     }
@@ -232,16 +199,13 @@ void DelaunayAlgorithm::delaunayCalculation() {
                             if(cdt.vertices[lato.v2()].y == yBlue[i])
                             {
                                 foundBV2 = 1;
-                                RCLCPP_INFO(this->get_logger(), " giallo vero");
                             }
                         }
                     }
                     lato.v2();
                 }
-                RCLCPP_INFO(this->get_logger(), "%d %d", foundBV1, foundBV2);
                 //if(!foundBV1 != !foundBV2) //XOR 
                 {
-                    RCLCPP_INFO(this->get_logger(), "-----------------------XORR----------------------------");
                     double midX = (cdt.vertices[lato.v1()].x  + cdt.vertices[lato.v2()].x) / 2.0;     
                     double midY = (cdt.vertices[lato.v1()].y + cdt.vertices[lato.v2()].y) / 2.0;
                     Waypoints.push_back({midX, midY});
@@ -249,14 +213,13 @@ void DelaunayAlgorithm::delaunayCalculation() {
                 }
             }
         }
-    
+
 }
 
 void DelaunayAlgorithm::spline(const int max_spline_degree_, const  std::vector<CustomPoint2D>Waypoints) {
     // DEBUG ONLY grado
     if (max_spline_degree_ != 2)
         throw std::invalid_argument("Grado non valido");
-    if(Waypoints.size()==0){ RCLCPP_INFO(this->get_logger(), "spline");}
 
     // Estrai coordinate x e y
     std::vector<double> x, y;

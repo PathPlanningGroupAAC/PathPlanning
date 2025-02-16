@@ -28,18 +28,14 @@
 #include <glm/gtx/quaternion.hpp>
 
 // Path Planning Custom Libs
-#include "CDT.h"
 #include "DelaunayAlgorithm.h"
+#include "CDT.h"
 #include "DetectBoundsAlgorithm.h"
 
 using namespace std::chrono_literals;
 
-int main(int argc, char* argv[]);
-
 class PathPlannerNode : public rclcpp::Node
 {
-  public:
-
   private:
     bool isValid;
     std::vector<Frame*> frames; 
@@ -62,7 +58,6 @@ class PathPlannerNode : public rclcpp::Node
       }
 
       // Delaunay setup
-      /*
       {
         delaunayAlgorithm = new DelaunayAlgorithm(publisher_waypoints_, publisher_spline_points_, publisher_filtered_cones_);
 
@@ -79,7 +74,6 @@ class PathPlannerNode : public rclcpp::Node
         RCLCPP_INFO(this->get_logger(), "Max Y cones filter: %f", delaunayAlgorithm->filter_param_y_);
         RCLCPP_INFO(this->get_logger(), "Max Spline Degree: %f", delaunayAlgorithm->max_spline_degree_);
       }
-      */
     } 
 
   public:
@@ -190,7 +184,7 @@ class PathPlannerNode : public rclcpp::Node
         }
 
         // Passaggio alla Delaunay
-        delaunayAlgorithm->timer_callback(frame->punti_finali_left, frame->punti_finali_right);
+        //delaunayAlgorithm->timer_callback(frame->punti_finali_left, frame->punti_finali_right);
       }
       
     }
@@ -205,7 +199,6 @@ class PathPlannerNode : public rclcpp::Node
     // Delaunay
     DelaunayAlgorithm* delaunayAlgorithm                                                              = NULL;
 };
-
 
 int main(int argc, char* argv[])
 {

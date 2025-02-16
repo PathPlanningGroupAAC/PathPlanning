@@ -4,6 +4,7 @@
 #include <utility>
 #include <glm/glm.hpp>
 
+#include <rclcpp/rclcpp.hpp>
 #include <control_msgs/msg/waypoint_array_stamped.hpp>
 #include <control_msgs/msg/ref_data.hpp>
 #include <control_msgs/msg/waypoint.hpp>
@@ -48,4 +49,4 @@ public:
     rclcpp::Publisher<control_msgs::msg::WaypointArrayStamped>::SharedPtr publisher_waypoints_        = NULL;
     rclcpp::Publisher<control_msgs::msg::WaypointArrayStamped>::SharedPtr publisher_spline_points_    = NULL;
     rclcpp::Publisher<zed_msgs::msg::Cones>::SharedPtr publisher_filtered_cones_                      = NULL;
-}
+};
