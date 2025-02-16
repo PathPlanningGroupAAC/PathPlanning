@@ -1,32 +1,44 @@
+// Standard library
 #include <chrono>
 #include <functional>
 #include <memory>
 #include <string>
+#include <iostream>
+#include <filesystem>
+#include <fstream>
+#include <algorithm>
+#include <vector>
 
-#include <nav_msgs/msg/odometry.hpp>
+// ROS2 Libs
 #include <rclcpp/rclcpp.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 #include <std_msgs/msg/string.hpp>
-#include "zed_msgs/msg/cones.hpp"
-#include "std_msgs/msg/float32_multi_array.hpp"
+#include <std_msgs/msg/header.hpp>
+#include <zed_msgs/msg/cones.hpp>
+#include <control_msgs/msg/waypoint_array_stamped.hpp>
+#include <control_msgs/msg/ref_data.hpp>
+#include <control_msgs/msg/waypoint.hpp>
 
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 
+// GLM
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+// Path Planning Custom Libs
+#include "CDT.h"
+#include "DelaunayAlgorithm.h"
 #include "DetectBoundsAlgorithm.h"
-
-#include <filesystem>
-#include <fstream>
-
-#include <vector>
 
 using namespace std::chrono_literals;
 
+int main(int argc, char* argv[]);
+
 class PathPlannerNode : public rclcpp::Node
 {
+  public:
 
   private:
     bool isValid;
@@ -36,13 +48,41 @@ class PathPlannerNode : public rclcpp::Node
     PathPlannerNode()
     : Node("pathplanner_node"), isValid(false)
     {
-      points_map = this->create_publisher<std_msgs::msg::Float32MultiArray>("multi_points", 10);
+      RCLCPP_INFO(this->get_logger(), "Node has started");
 
-      odometry_Sub = this->create_subscription<nav_msgs::msg::Odometry>("/ukf_update_pose", 1, std::bind(&PathPlannerNode::odometryCallback, this, std::placeholders::_1));
-      landmark_Sub = this->create_subscription<zed_msgs::msg::Cones>("/zed2i/topic_bbox_zed3d", 1, std::bind(&PathPlannerNode::landmarkCallback, this, std::placeholders::_1));
+      // General node setup
+      {
+        odometry_Sub = this->create_subscription<nav_msgs::msg::Odometry>("/ukf_update_pose", 1, std::bind(&PathPlannerNode::odometryCallback, this, std::placeholders::_1));
+        landmark_Sub = this->create_subscription<zed_msgs::msg::Cones>("/zed2i/topic_bbox_zed3d", 1, std::bind(&PathPlannerNode::landmarkCallback, this, std::placeholders::_1));
+
+        publisher_waypoints_ = this->create_publisher<control_msgs::msg::WaypointArrayStamped>("Waypointsc", 1);
+        //publisher_ref_waypoint_ = this->create_publisher<control_msgs::msg::WaypointArrayStamped>("Waypoint_filtered", 1);
+        publisher_spline_points_ = this->create_publisher<control_msgs::msg::WaypointArrayStamped>("Spline", 1);
+        publisher_filtered_cones_ = this->create_publisher<zed_msgs::msg::Cones>("Filtered_Cones", 1);
+      }
+
+      // Delaunay setup
+      /*
+      {
+        delaunayAlgorithm = new DelaunayAlgorithm(publisher_waypoints_, publisher_spline_points_, publisher_filtered_cones_);
+
+        this->declare_parameter<double>("Cones_filter_param_distance", 0.0);
+        this->declare_parameter<double>("Cones_filter_param_y", 0.0);
+        this->declare_parameter<int>("Max_spline_degree", 2);
+
+        delaunayAlgorithm->filter_param_distance_ = this->get_parameter("Cones_filter_param_distance").as_double();
+        delaunayAlgorithm->filter_param_y_ = this->get_parameter("Cones_filter_param_y").as_double();
+        delaunayAlgorithm->max_spline_degree_ = this->get_parameter("Max_spline_degree").as_int();
+
+        RCLCPP_INFO(this->get_logger(), "----- PARAMETRI PATH AUTOCROSS/TRACKDRIVE -----");
+        RCLCPP_INFO(this->get_logger(), "Max distance cones filter: %f", delaunayAlgorithm->filter_param_distance_);
+        RCLCPP_INFO(this->get_logger(), "Max Y cones filter: %f", delaunayAlgorithm->filter_param_y_);
+        RCLCPP_INFO(this->get_logger(), "Max Spline Degree: %f", delaunayAlgorithm->max_spline_degree_);
+      }
+      */
     } 
 
-  private:
+  public:
 
     void odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
     {
@@ -146,21 +186,28 @@ class PathPlannerNode : public rclcpp::Node
         // "Pulizia" del frame (rimozione di punti gia' misurati)
         if(frames.size() >= 2)
         {
-            //remove_same_cones(*(frames[frames.size()-2]), *frame);
+            remove_same_cones(*(frames[frames.size()-2]), *frame);
         }
 
         // Passaggio alla Delaunay
+        delaunayAlgorithm->timer_callback(frame->punti_finali_left, frame->punti_finali_right);
       }
       
     }
+    /*--------------------PUBLISHERS--------------------*/
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_Sub                             = NULL;
+    rclcpp::Subscription<zed_msgs::msg::Cones>::SharedPtr landmark_Sub                                = NULL;
 
-    rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr points_map;
+    rclcpp::Publisher<control_msgs::msg::WaypointArrayStamped>::SharedPtr publisher_waypoints_        = NULL;
+    rclcpp::Publisher<control_msgs::msg::WaypointArrayStamped>::SharedPtr publisher_spline_points_    = NULL;
+    rclcpp::Publisher<zed_msgs::msg::Cones>::SharedPtr publisher_filtered_cones_                      = NULL;
 
-    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_Sub;
-    rclcpp::Subscription<zed_msgs::msg::Cones>::SharedPtr landmark_Sub;
+    // Delaunay
+    DelaunayAlgorithm* delaunayAlgorithm                                                              = NULL;
 };
 
-int main(int argc, char * argv[])
+
+int main(int argc, char* argv[])
 {
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<PathPlannerNode>());
