@@ -116,8 +116,8 @@ class PathPlannerNode : public rclcpp::Node
       RCLCPP_INFO(this->get_logger(), "landmarkCallback");
       
       char separator = std::filesystem::path::preferred_separator;
-      std::string absolute_in = std::filesystem::current_path().string() + separator + "m_in.csv";
-      std::string absolute_out = std::filesystem::current_path().string() + separator + "m_out.csv";
+      std::string absolute_in = std::filesystem::current_path().string() + separator + "m_in1.csv";
+      std::string absolute_out = std::filesystem::current_path().string() + separator + "m_out1.csv";
 
       if(isValid)
       {
@@ -145,19 +145,19 @@ class PathPlannerNode : public rclcpp::Node
           std::cout << cone.x << "," << cone.y << '\n';   
         }
 
-        /*std::fstream f_in(absolute_in, std::fstream::in | std::fstream::out | std::fstream::app);
+        std::fstream f_in(absolute_in, std::fstream::in | std::fstream::out | std::fstream::app);
         for(int i = 0; i < blue_cones_size; i++)
         {
-          glm::vec2 cone = frame->veichlePosition +glm::vec2(msg->blue_cones[i].x, msg->blue_cones[i].y);
+          glm::vec2 cone = glm::vec2(msg->blue_cones[i].x, msg->blue_cones[i].y);
           f_in << cone.x << "," << cone.y << '\n';   
         }
         
         std::fstream f_out(absolute_out, std::fstream::in | std::fstream::out | std::fstream::app);
         for(int i = 0; i < yellow_cones_size; i++)
         {
-          glm::vec2 cone = frame->veichlePosition +glm::vec2(msg->yellow_cones[i].x, msg->yellow_cones[i].y);
+          glm::vec2 cone = glm::vec2(msg->yellow_cones[i].x, msg->yellow_cones[i].y);
           f_out << cone.x << "," << cone.y << '\n';
-        }*/
+        }
 
         for(int i = 0; i < blue_cones_size; i++)
         {
@@ -180,7 +180,7 @@ class PathPlannerNode : public rclcpp::Node
         // "Pulizia" del frame (rimozione di punti gia' misurati)
         if(frames.size() >= 2)
         {
-            remove_same_cones(*(frames[frames.size()-2]), *frame);
+            //remove_same_cones(*(frames[frames.size()-2]), *frame);
         }
 
         // Passaggio alla Delaunay
