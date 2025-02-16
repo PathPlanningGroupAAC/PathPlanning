@@ -184,7 +184,7 @@ class PathPlannerNode : public rclcpp::Node
         }
 
         // Passaggio alla Delaunay
-        //delaunayAlgorithm->timer_callback(frame->punti_finali_left, frame->punti_finali_right);
+        delaunayAlgorithm->timer_callback(frame->punti_finali_left, frame->punti_finali_right);
       }
       
     }
