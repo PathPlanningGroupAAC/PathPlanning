@@ -155,20 +155,29 @@ void DelaunayAlgorithm::delaunayCalculation() {
     std::ofstream File;
 
     File.open("delaunay.txt");
-    std::vector<int> indices;
-    indices.resize(lati.size()*2);
-    File<<pts.size()<< " " << indices.size() << "\n";
+    std::vector<uint32_t> indices;
+    File<<pts.size()<< " 0\n";
 
     for (const auto& edge : lati) {
-        indices.push_back(edge.v1());
-        indices.push_back(edge.v2());
         File << pts[edge.v1()].x << " " << pts[edge.v1()].y << std::endl;
         File << pts[edge.v2()].x << " " << pts[edge.v2()].y << std::endl;
+        indices.push_back(edge.v1());
+        indices.push_back(edge.v2());
     }
 
+    
+    bool first_element = true;
     for (const auto& index : indices) {
-        File << index << std::endl;
+        if(first_element)
+        {
+            File << (uint32_t)index << " ";
+            first_element = false;
+        }else{
+            File << (uint32_t)index << "\n";
+            first_element = true;
+        }
     }
+    File.close();
 
     //calcolo waypoints (punto centrale edges)
 

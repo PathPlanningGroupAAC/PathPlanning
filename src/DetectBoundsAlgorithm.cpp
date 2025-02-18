@@ -46,7 +46,7 @@ void begin_frame(const std::vector<glm::vec2>& cones_blue, const std::vector<glm
             return;
         }
 
-        punti_finali_left = nvd(punti_finali_left, adiacenti, grado_spline);
+        nvd(punti_finali_left, adiacenti, grado_spline);
 
         i++;
     }
@@ -64,7 +64,7 @@ void begin_frame(const std::vector<glm::vec2>& cones_blue, const std::vector<glm
             return;
         }
 
-        punti_finali_right = nvd(punti_finali_right, adiacenti, grado_spline);
+        nvd(punti_finali_right, adiacenti, grado_spline);
 
         i++;
     }
@@ -72,7 +72,7 @@ void begin_frame(const std::vector<glm::vec2>& cones_blue, const std::vector<glm
     
 }
 
-std::vector<glm::vec2> nvd(const std::vector<glm::vec2>& punti_correnti, const std::vector<glm::vec2>& adiacenti_correnti, int grado_spline) {
+void nvd(std::vector<glm::vec2>& punti_correnti, const std::vector<glm::vec2>& adiacenti_correnti, int grado_spline) {
     // DEBUG ONLY grado
     if (grado_spline != 2)
         throw std::invalid_argument("Grado non valido");
@@ -121,10 +121,7 @@ std::vector<glm::vec2> nvd(const std::vector<glm::vec2>& punti_correnti, const s
     glm::vec2 cono_scelto = adiacenti_correnti[indice_minimo];
 
     // Aggiorna punti
-    std::vector<glm::vec2> punti_aggiornati = punti_correnti;
-    punti_aggiornati.push_back(cono_scelto);
-
-    return punti_aggiornati;
+    punti_correnti.push_back(cono_scelto);
 }
 
 std::vector<glm::vec2> trova_adiacenti(const std::vector<glm::vec2>& all_points, float raggio_di_ricerca, const std::vector<glm::vec2>& punti_scelti, float angolo_di_ricerca, float dmax) {
@@ -142,11 +139,12 @@ std::vector<glm::vec2> trova_adiacenti(const std::vector<glm::vec2>& all_points,
             float distanza = glm::distance(punto_attuale, ultimo_punto);
 
             // Calcolo angolo
-            glm::vec2 vettore_ultimo_segmento = ultimo_punto - penultimo_punto;
-            glm::vec2 vettore_cono_filtrato = punto_attuale - ultimo_punto;
-            float angolo = calculateAngle(vettore_ultimo_segmento, vettore_cono_filtrato);
-            
-            if (distanza <= distanza_max && distanza >= DISTANZA_MINIMA) {
+            float angoloUltimo = calculateAngle(ultimo_punto, penultimo_punto);
+            float angoloAttuale = calculateAngle(punto_attuale, ultimo_punto);
+
+            float delta = angoloAttuale - angoloUltimo;
+
+            if ((distanza <= distanza_max && distanza >= DISTANZA_MINIMA) && (delta >= -angolo_di_ricerca && delta <= angolo_di_ricerca)) {
                 adiacenti.push_back(punto_attuale);
             }
         }

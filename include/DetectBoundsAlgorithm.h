@@ -42,7 +42,7 @@ void begin_frame(const std::vector<glm::vec2>& cones_blue, const std::vector<glm
  *  adiacenti_correnti      -> Adiacenti restituiti da 'trova_adicenti'.
  *  grado_spline            -> Grado spline per l'interpolazione (supporto solo per quelle di 2a grado).
  */
-std::vector<glm::vec2> nvd(const std::vector<glm::vec2>& punti_correnti, const std::vector<glm::vec2>& adiacenti_correnti, int grado_spline);
+ void nvd(std::vector<glm::vec2>& punti_correnti, const std::vector<glm::vec2>& adiacenti_correnti, int grado_spline);
 
 /**
  *  Trova gli adiacenti all'ultimo punto escludendo gli adiacenti che non soddisfano 
