@@ -15,12 +15,13 @@ find_package(control_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 
 # Inlcude Directories
-include_directories(vendor/CDT/CDT/include)
-add_subdirectory(vendor/CDT/CDT)
+include_directories(vendor/DelaunayFromScratch/include)
+add_subdirectory(vendor/DelaunayFromScratch/)
 
 include_directories(vendor/glm)
 include_directories(install/zed_msgs/include/zed_msgs)
 include_directories(install/control_msgs/include/control_msgs)
+
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -50,6 +51,8 @@ target_include_directories(path_planner
   PRIVATE
     ${CMAKE_SOURCE_DIR}/include
 )
+
+target_link_libraries(path_planner DelaunayFromScratch)
 
 # Making visible to the command "ros2 run ..."
 install(TARGETS

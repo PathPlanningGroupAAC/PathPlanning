@@ -1,7 +1,20 @@
 #include "DelaunayAlgorithm.h"
 #include "DetectBoundsAlgorithm.h"
+#include "DelaunayFromScratch.h"
 
 #include <fstream>
+#include <unordered_set>
+#include "ChadNet.h"
+
+std::vector<glm::vec2> DelaunayAlgorithm::punti_finali_left;
+std::vector<glm::vec2> DelaunayAlgorithm::punti_finali_right;
+
+std::unordered_set<Vertex> DelaunayAlgorithm::left_p;
+std::unordered_set<Vertex> DelaunayAlgorithm::right_p;
+
+std::ofstream DelaunayAlgorithm::File;
+
+bool DelaunayAlgorithm::initialized;
 
 DelaunayAlgorithm::DelaunayAlgorithm(rclcpp::Publisher<control_msgs::msg::WaypointArrayStamped>::SharedPtr& publisher_waypoints_,
     rclcpp::Publisher<control_msgs::msg::WaypointArrayStamped>::SharedPtr& publisher_spline_points_,
@@ -10,6 +23,13 @@ DelaunayAlgorithm::DelaunayAlgorithm(rclcpp::Publisher<control_msgs::msg::Waypoi
     this->publisher_waypoints_ = publisher_waypoints_;
     this->publisher_spline_points_ = publisher_spline_points_;
     this->publisher_filtered_cones_ = publisher_filtered_cones_;
+
+    if(!ChadConnect("192.168.1.8", CHAD_DEFAULT_PORT))
+    {
+        std::cout << "Error: Unable to connect to ChadPlotter!\n";
+    }
+
+    initialized = false;
 }
 
 void DelaunayAlgorithm::timer_callback(const std::vector<glm::vec2>& punti_finali_left, const std::vector<glm::vec2>& punti_finali_right)
@@ -85,7 +105,7 @@ void DelaunayAlgorithm::timer_callback(const std::vector<glm::vec2>& punti_final
     {
         if((xBlue.size()>1) || (xYellow.size()>1))
         {
-            delaunayCalculation();
+            delaunayCalculation(punti_finali_left, punti_finali_right);
         }
     }
 
@@ -98,142 +118,98 @@ void DelaunayAlgorithm::timer_callback(const std::vector<glm::vec2>& punti_final
 
 }
 
-void DelaunayAlgorithm::delaunayCalculation() {
-    std::vector<CustomPoint2D> points;
-    // Itera su ogni "cone" in filtered_cones (di tipo zed_msgs::msg::Cones) per convertire filtered_cones in custompoint2D
-    for (const auto& cone : filtered_cones.blue_cones) {  
-        CustomPoint2D point;
-        point.data[0] = cone.x;  
-        point.data[1] = cone.y;  
 
-        points.push_back(point);
-    }
-    for (const auto& cone : filtered_cones.yellow_cones) {  
-        CustomPoint2D point;
-        point.data[0] = cone.x;  
-        point.data[1] = cone.y;  
-
-        points.push_back(point);
-    }
-    /*
-    for (const auto& cone : filtered_cones.little_orange_cones) {  
-        CustomPoint2D point;
-        point.data[0] = cone.x;  
-        point.data[1] = cone.y;  
-
-        points.push_back(point);
-    }
-    for (const auto& cone : filtered_cones.big_orange_cones) {  
-        CustomPoint2D point;
-        point.data[0] = cone.x;  
-        point.data[1] = cone.y;  
-
-        points.push_back(point);
-    }
-    */
+void DelaunayAlgorithm::delaunayCalculation(const std::vector<glm::vec2>& punti_finali_left, const std::vector<glm::vec2>& punti_finali_right) {
     
-    
-    std::vector<CustomEdge> edges;
-    CDT::Triangulation<float> cdt; 
+    DelaunayAlgorithm::punti_finali_left.clear();
+    DelaunayAlgorithm::punti_finali_right.clear();
+    DelaunayAlgorithm::left_p.clear();
+    DelaunayAlgorithm::right_p.clear();
+    DelaunayAlgorithm::punti_finali_left = punti_finali_left;
+    DelaunayAlgorithm::punti_finali_right = punti_finali_right;
 
-    //converto i punti in vertici per poter rimpire array vertici ed eliminare duplicati
-    std::vector<CDT::V2d<float>> pts;
-    for (const auto& point : points) {
-        pts.push_back({point.data[0], point.data[1]});
+
+    std::vector<Vertex> points;
+    for(auto& p : punti_finali_left)
+    {
+        points.push_back({p.x, p.y});
+        DelaunayAlgorithm::left_p.insert({p.x, p.y});
+    }
+
+    for(auto& p : punti_finali_right)
+    {
+        points.push_back({p.x, p.y});
+        DelaunayAlgorithm::right_p.insert({p.x, p.y});
+    }
+    
+    // Delaunay
+    std::vector<Triangle> triangles = delaunay(points);
+
+    for (auto& t : triangles)
+    {
+        bool existsP1 = false;
+        bool existsP2 = false;
+        bool existsP3 = false;
+
+        std::unordered_set<Vertex>::const_iterator gotP1Left = left_p.find(t.p1);
+        std::unordered_set<Vertex>::const_iterator gotP1Right = right_p.find(t.p1);
+        if (!(Exists(gotP1Left, left_p) && Exists(gotP1Right, right_p)))
+        {
+            existsP1 = true;
         }
 
-    CDT::RemoveDuplicates<float>(pts);
-
-
-    //triangolo
-    cdt.insertVertices(pts);
-    
-    
-    cdt.eraseSuperTriangle();
-
-    CDT::EdgeUSet lati = CDT::extractEdgesFromTriangles(cdt.triangles);
-    std::ofstream File;
-
-    File.open("delaunay.txt");
-    std::vector<uint32_t> indices;
-    File<<pts.size()<< " 0\n";
-
-    for (const auto& edge : lati) {
-        File << pts[edge.v1()].x << " " << pts[edge.v1()].y << std::endl;
-        File << pts[edge.v2()].x << " " << pts[edge.v2()].y << std::endl;
-        indices.push_back(edge.v1());
-        indices.push_back(edge.v2());
-    }
-
-    
-    bool first_element = true;
-    for (const auto& index : indices) {
-        if(first_element)
+        std::unordered_set<Vertex>::const_iterator gotP2Left = left_p.find(t.p2);
+        std::unordered_set<Vertex>::const_iterator gotP2Right = right_p.find(t.p2);
+        if (!(Exists(gotP2Left, left_p) && Exists(gotP2Right, right_p)))
         {
-            File << (uint32_t)index << " ";
-            first_element = false;
-        }else{
-            File << (uint32_t)index << "\n";
-            first_element = true;
+            existsP2 = true;
         }
-    }
-    File.close();
 
-    //calcolo waypoints (punto centrale edges)
-
-    
-        //if(lati){RCLCPP_INFO(PathPlannerNode::Instance->get_logger(), "ci sta");}
-        
-        //controllo che gli edgedes stanno nel vettore xblue o xyellow 
-        if((!xBlue.empty() && !yBlue.empty()))
+        std::unordered_set<Vertex>::const_iterator gotP3Left = left_p.find(t.p3);
+        std::unordered_set<Vertex>::const_iterator gotP3Right = right_p.find(t.p3);
+        if (!(Exists(gotP3Left, left_p) && Exists(gotP3Right, right_p)))
         {
-            int foundBV1 = 0;
-            int foundBV2 = 0;
+            existsP3 = true;
+        }
 
-            for(auto lato : lati){
-                for(size_t i = 0; i < xBlue.size(); ++i)
-                {
-                    if(cdt.vertices[lato.v1()].x == xBlue[i])
-                    {
-                        for(size_t j = 0; j < yBlue.size(); ++j)
-                        {
-                                
-                            if(cdt.vertices[lato.v1()].y == yBlue[j])
-                            {
-                                foundBV1 = 1;
-                            }
-                        }
-                    }
-                    lato.v1();
-
-                }
-                for(size_t i = 0; i < xBlue.size(); ++i)
-                {
-                    if(cdt.vertices[lato.v2()].x == xBlue[i])
-                    {
-                        for(size_t i = 0; i < yBlue.size(); ++i)
-                        {
-                            if(cdt.vertices[lato.v2()].y == yBlue[i])
-                            {
-                                foundBV2 = 1;
-                            }
-                        }
-                    }
-                    lato.v2();
-                }
-                //if(!foundBV1 != !foundBV2) //XOR 
-                {
-                    double midX = (cdt.vertices[lato.v1()].x  + cdt.vertices[lato.v2()].x) / 2.0;     
-                    double midY = (cdt.vertices[lato.v1()].y + cdt.vertices[lato.v2()].y) / 2.0;
-                    Waypoints.push_back({midX, midY});
-                    
-                }
+        if (existsP1 && existsP2)
+        {
+            if (DifferentLane(gotP1Right, right_p, gotP2Left, left_p) || DifferentLane(gotP1Left, left_p, gotP2Right, right_p))
+            {
+                double midX = (t.p1.x + t.p2.x) / 2.0;
+                double midY = (t.p1.y + t.p2.y) / 2.0;
+                Waypoints.push_back({midX, midY});
+            }
+        }
+        else if (existsP2 && existsP3)
+        {
+            if (DifferentLane(gotP2Right, right_p, gotP3Left, left_p)|| DifferentLane(gotP2Left, left_p, gotP3Right, right_p))
+            {
+                double midX = (t.p2.x + t.p3.x) / 2.0;
+                double midY = (t.p2.y + t.p3.y) / 2.0;
+                Waypoints.push_back({ midX, midY });
+            }
+        }
+        else if (existsP3 && existsP1)
+        {
+            if (DifferentLane(gotP3Right, right_p, gotP1Left, left_p)|| DifferentLane(gotP3Left, left_p, gotP1Right, right_p))
+            {
+                double midX = (t.p3.x + t.p1.x) / 2.0;
+                double midY = (t.p3.y + t.p1.y) / 2.0;
+                Waypoints.push_back({ midX, midY });
             }
         }
 
+
+        ChadSendLine(t.p1.x, t.p1.y, t.p2.x, t.p2.y);
+        ChadSendLine(t.p2.x, t.p2.y, t.p3.x, t.p3.y);
+        ChadSendLine(t.p3.x, t.p3.y, t.p1.x, t.p1.y);
+    }
+    
+    if(initialized == false) initialized = true;
 }
 
-void DelaunayAlgorithm::spline(const int max_spline_degree_, const  std::vector<CustomPoint2D>Waypoints) {
+void DelaunayAlgorithm::spline(const int max_spline_degree_, const  std::vector<Vertex>Waypoints) {
     // DEBUG ONLY grado
     if (max_spline_degree_ != 2)
         throw std::invalid_argument("Grado non valido");
@@ -241,8 +217,8 @@ void DelaunayAlgorithm::spline(const int max_spline_degree_, const  std::vector<
     // Estrai coordinate x e y
     std::vector<double> x, y;
     for (const auto& p : Waypoints) {
-        x.push_back(p.data[0]);
-        y.push_back(p.data[1]);
+        x.push_back(p.x);
+        y.push_back(p.y);
     }
 
     // Calcolo spline quadratiche
@@ -286,15 +262,16 @@ void DelaunayAlgorithm::publish_spline_points(const std::vector<glm::vec2>& fina
     publisher_spline_points_->publish(msg);
 }
 
-void DelaunayAlgorithm::publish_waypoints(const std::vector<CustomPoint2D> Waypoints)
+void DelaunayAlgorithm::publish_waypoints(const std::vector<Vertex> Waypoints)
 {
     auto msg = control_msgs::msg::WaypointArrayStamped();
 
     for(size_t i = 0; i < Waypoints.size(); ++i)
     {
         auto waypoint = control_msgs::msg::Waypoint();
-        waypoint.position.x = Waypoints[i].data[0];
-        waypoint.position.y = Waypoints[i].data[1];
+        waypoint.position.x = Waypoints[i].x;
+        waypoint.position.y = Waypoints[i].y;
+        ChadSendPoint((float)waypoint.position.x, (float)waypoint.position.y);
         msg.waypoints.push_back(waypoint); 
     }
 

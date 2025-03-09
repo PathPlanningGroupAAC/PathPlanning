@@ -29,7 +29,6 @@
 
 // Path Planning Custom Libs
 #include "DelaunayAlgorithm.h"
-#include "CDT.h"
 #include "DetectBoundsAlgorithm.h"
 
 using namespace std::chrono_literals;
@@ -113,11 +112,7 @@ class PathPlannerNode : public rclcpp::Node
     void landmarkCallback(const zed_msgs::msg::Cones::SharedPtr msg)
     {
       std::vector<float> x, y;
-      RCLCPP_INFO(this->get_logger(), "landmarkCallback");
-      
-      char separator = std::filesystem::path::preferred_separator;
-      std::string absolute_in = std::filesystem::current_path().string() + separator + "m_in1.csv";
-      std::string absolute_out = std::filesystem::current_path().string() + separator + "m_out1.csv";
+      RCLCPP_INFO(this->get_logger(), "landmarkCallback");\
 
       if(isValid)
       {
@@ -145,22 +140,6 @@ class PathPlannerNode : public rclcpp::Node
           std::cout << cone.x << "," << cone.y << '\n';   
         }
 
-        /*
-        std::fstream f_in(absolute_in, std::fstream::in | std::fstream::out | std::fstream::app);
-        for(int i = 0; i < blue_cones_size; i++)
-        {
-          glm::vec2 cone = glm::vec2(msg->blue_cones[i].x, msg->blue_cones[i].y);
-          f_in << cone.x << "," << cone.y << '\n';   
-        }
-        
-        std::fstream f_out(absolute_out, std::fstream::in | std::fstream::out | std::fstream::app);
-        for(int i = 0; i < yellow_cones_size; i++)
-        {
-          glm::vec2 cone = glm::vec2(msg->yellow_cones[i].x, msg->yellow_cones[i].y);
-          f_out << cone.x << "," << cone.y << '\n';
-        }
-
-        */
         for(int i = 0; i < blue_cones_size; i++)
         {
             frame->blueCones[i] = glm::vec2(msg->blue_cones[i].x, msg->blue_cones[i].y);
@@ -176,14 +155,6 @@ class PathPlannerNode : public rclcpp::Node
         }
 
         begin_frame(frame->blueCones, frame->yellowCones, frame->veichlePosition, frame->veichleDirection, frame->punti_finali_left, frame->punti_finali_right);
-
-        if(frames.size() == 23)
-        {
-          RCLCPP_INFO(this->get_logger(), "lp: (%f, %f)", frame->punti_finali_left[0].x, frame->punti_finali_left[0].y);
-          RCLCPP_INFO(this->get_logger(), "lp2: (%f, %f)", frame->punti_finali_left[1].x, frame->punti_finali_left[1].y);
-          RCLCPP_INFO(this->get_logger(), "rp: (%f, %f)", frame->punti_finali_right[0].x, frame->punti_finali_right[0].y);
-          RCLCPP_INFO(this->get_logger(), "rp2: (%f, %f)", frame->punti_finali_right[1].x, frame->punti_finali_right[1].y);
-        }
 
         RCLCPP_INFO(this->get_logger(), "END FRAME");
 
